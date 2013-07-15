@@ -1,0 +1,169 @@
+.MODEL TINY
+
+.CODE
+ORG 100H
+
+MAIN PROC
+LOCALS @@
+	MOV     AX, 0A000H
+	MOV     ES, AX
+
+	MOV     AX, 13H
+	INT     10H
+
+	CALL    DRAW_SQUARES
+@@CYCL:
+	CALL    DELAY
+	CALL    SHIFT_PALETTE
+	INC     T
+
+	MOV     AH, 01H
+	INT     16H
+	JZ      @@CYCL
+
+	MOV     AX, 0
+	INT     16H
+
+	CMP     AL, 13
+	JNE     @@CYCL
+
+	MOV     AX, 03H
+	INT     10H
+
+	MOV     AX, 04C00H
+	INT     21H
+MAIN ENDP
+
+DRAW_SQUARES PROC
+LOCALS @@
+	PUSH    SI
+	MOV     SI, 0
+
+@@CYCL:	
+	PUSH    SI
+	MOV     AX, 320
+	SUB     AX, SI
+	SUB     AX, SI
+	PUSH    AX
+	PUSH    SI
+	PUSH    SI
+	CALL    DRAW_HORIZONTAL_LINE
+	ADD     SP, 4
+
+	MOV     AX, 199
+	SUB     AX, SI
+	PUSH    AX
+	PUSH    SI
+	CALL    DRAW_HORIZONTAL_LINE
+	ADD     SP, 8
+
+	INC     SI
+	PUSH    SI
+	MOV     AX, 200
+	SUB     AX, SI
+	SUB     AX, SI
+	PUSH    AX
+	PUSH    SI
+	PUSH    SI
+	CALL    DRAW_VERTICAL_LINE
+	ADD     SP, 4
+
+	PUSH    SI
+	MOV     AX, 319
+	SUB     AX, SI
+	PUSH    AX
+	CALL    DRAW_VERTICAL_LINE
+	ADD     SP, 8
+
+	CMP     SI, 99
+	JB      @@CYCL
+
+	POP     SI
+	RET
+DRAW_SQUARES ENDP
+
+DRAW_VERTICAL_LINE PROC
+LOCALS @@
+	PUSH    BP
+	MOV     BP, SP
+	PUSH    SI
+
+	;SI = X + Y * 320
+	MOV     AX, 320
+	MUL     WORD PTR [BP+6]
+	MOV     SI, AX
+	ADD     SI, [BP+4]
+
+	MOV     CX, [BP+8]
+	MOV     AL, [BP+10]
+@@CYCL:
+	MOV     BYTE PTR ES:[SI], AL
+	ADD     SI, 320
+	DEC     CX
+	JNZ     @@CYCL
+
+	POP     SI
+	POP     BP
+	RET
+DRAW_VERTICAL_LINE ENDP
+
+DRAW_HORIZONTAL_LINE PROC
+	PUSH    BP
+	MOV     BP, SP
+	PUSH    DI
+
+	;SI = X + Y * 320
+	MOV     AX, 320
+	MUL     WORD PTR [BP+6]
+	MOV     DI, AX
+	ADD     DI, [BP+4]
+
+	MOV     CX, [BP+8]
+	MOV     AL, [BP+10]
+	REP     STOSB
+
+	POP     DI
+	POP     BP
+	RET
+DRAW_HORIZONTAL_LINE ENDP
+
+SHIFT_PALETTE PROC
+LOCALS @@
+	MOV     CL, 1
+
+@@CYCL:
+	MOV     AL, CL
+	MOV     DX, 03C8h
+	OUT     DX, AL
+
+	MOV     AL, T
+	INC     DX
+
+	ADD     AL, CL
+	OUT     DX, AL
+
+	ADD     AL, CL
+	OUT     DX, AL
+
+	ADD     AL, CL
+	OUT     DX, AL
+
+	INC     CL
+	CMP     CL, 100
+	JB      @@CYCL
+
+	RET
+SHIFT_PALETTE ENDP
+
+DELAY PROC
+	MOV     CX, 0
+	MOV     DX, 40000
+	MOV     AH, 86H
+	INT     15H
+
+	RET
+DELAY ENDP
+
+T DB 0
+
+END MAIN

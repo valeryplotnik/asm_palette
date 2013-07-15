@@ -1,0 +1,7 @@
+NAME = GRAPH
+
+$(NAME): $(NAME).OBJ
+	TLINK /t $(NAME).OBJ
+
+$(NAME).OBJ: $(NAME).ASM
+	TASM $(NAME).ASM
